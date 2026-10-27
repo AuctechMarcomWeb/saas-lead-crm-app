@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // export const fullBaseURL = `http://192.168.1.7:9001/api/`;
 
 // For PRODUCTION (Custom domain):
-export const fullBaseURL = `https://api.sdrnirmman.in/api/`;
+export const fullBaseURL = `http://192.168.1.5:9001/api`;
 
 console.log('fullBaseURL', fullBaseURL);
 
@@ -45,19 +45,25 @@ export const createAxiosInstance = (routeBase = '', extraHeaders = {}) => {
 
   /**
 
-   *  Request Interceptor: automatically attach JWT token from AsyncStorage
+   *  Request Interceptor: automatically attach JWT token and tenant ID from AsyncStorage
 
    */
 
   instance.interceptors.request.use(
     async config => {
       const token = await AsyncStorage.getItem('authToken');
+      const tenantDomain = await AsyncStorage.getItem('tenantDomain');
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
 
+      if (tenantDomain) {
+        config.headers['x-tenant-id'] = tenantDomain;
+      }
+
       console.log('Request URL:', `${baseURL}${config.url}`);
+      console.log('x-tenant-id:', tenantDomain || 'Not set');
 
       return config;
     },

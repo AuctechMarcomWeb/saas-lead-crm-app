@@ -28,20 +28,46 @@ import styles from './LoginScreen.style';
 const LoginScreen = ({ navigation }) => {
   const dispatch = useDispatch();
 
+  const [domain, setDomain] = useState('');
   const [UserId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({
+    domain: '',
     UserId: '',
     password: '',
   });
 
+  // Load saved domain on mount
+  React.useEffect(() => {
+    loadSavedDomain();
+  }, []);
+
+  const loadSavedDomain = async () => {
+    try {
+      const savedDomain = await AsyncStorage.getItem('tenantDomain');
+      if (savedDomain) {
+        setDomain(savedDomain);
+      }
+    } catch (error) {
+      console.error('Error loading saved domain:', error);
+    }
+  };
+
   const validateInputs = () => {
     const newErrors = {
+      domain: '',
       UserId: '',
       password: '',
     };
+
+    const trimmedDomain = domain.trim().toLowerCase();
+    if (!trimmedDomain) {
+      newErrors.domain = 'Please enter organization domain';
+    } else if (!/^[a-z0-9-]+$/.test(trimmedDomain)) {
+      newErrors.domain = 'Domain can only contain lowercase letters, numbers, and hyphens';
+    }
 
     if (!UserId.trim()) {
       newErrors.UserId = 'Please enter your User ID';
@@ -55,7 +81,7 @@ const LoginScreen = ({ navigation }) => {
 
     setErrors(newErrors);
 
-    return !newErrors.UserId && !newErrors.password;
+    return !newErrors.domain && !newErrors.UserId && !newErrors.password;
   };
 
   const handleLogin = async () => {
@@ -72,8 +98,12 @@ const LoginScreen = ({ navigation }) => {
     setIsLoading(true);
 
     try {
+      const trimmedDomain = domain.trim().toLowerCase();
       const trimmedUserId = UserId.trim();
       const fcmToken = global.fcmToken || null;
+
+      // Save domain BEFORE making API call
+      await AsyncStorage.setItem('tenantDomain', trimmedDomain);
 
       const requestData = {
         userId: trimmedUserId,
@@ -243,6 +273,52 @@ const LoginScreen = ({ navigation }) => {
             {/* Login card */}
             <View style={styles.formContainer}>
               <Text style={styles.formTitle}>Sign in to your account</Text>
+
+              {/* Domain */}
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
+                  Organization Domain
+                  <Text style={styles.required}> *</Text>
+                </Text>
+
+                <View
+                  style={[
+                    styles.inputContainer,
+                    errors.domain ? styles.inputError : null,
+                  ]}
+                >
+                  <Icon
+                    name="globe-outline"
+                    size={21}
+                    color="#6B7280"
+                    style={styles.inputIcon}
+                  />
+
+                  <TextInput
+                    style={styles.input}
+                    placeholder="yourcompany"
+                    placeholderTextColor="#6B7280"
+                    value={domain}
+                    onChangeText={text => {
+                      setDomain(text);
+                      setErrors(prev => ({
+                        ...prev,
+                        domain: '',
+                      }));
+                    }}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                    cursorColor="#2874F0"
+                    editable={!isLoading}
+                    accessibilityLabel="Organization Domain"
+                  />
+                </View>
+
+                {!!errors.domain && (
+                  <Text style={styles.errorText}>{errors.domain}</Text>
+                )}
+              </View>
 
               {/* User ID */}
               <View style={styles.fieldContainer}>

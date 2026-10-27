@@ -132,9 +132,11 @@ const ProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             try {
+              // Remove only auth token and user data, keep tenant domain
               await AsyncStorage.removeItem('authToken');
               await AsyncStorage.removeItem('userData');
               dispatch(logout());
+              // Navigate to Login screen (domain will be pre-filled)
               navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
             } catch (error) {
               console.error('Logout error:', error);
